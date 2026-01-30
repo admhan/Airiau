@@ -1,0 +1,142 @@
+\documentclass[a4paper,11pt]{article}
+
+\usepackage[margin=2.5cm]{geometry}
+\usepackage[french]{babel}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{amsmath, amssymb}
+\usepackage{graphicx}
+\usepackage{hyperref}
+
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{0.6em}
+
+\title{Projet d’apprentissage par renforcement}
+\author{Adam Hannachi}
+\date{Janvier 2026}
+
+\begin{document}
+
+\maketitle
+
+\section{Introduction}
+
+L’apprentissage par renforcement profond (\textit{Deep Reinforcement Learning}) a connu ces dernières années un essor considérable, porté à la fois par les avancées en réseaux de neurones profonds et par l’augmentation des capacités de calcul, notamment via l’utilisation de processeurs graphiques (GPU). Cette approche permet à un agent autonome d’apprendre une politique de décision optimale par interaction directe avec un environnement, sans supervision explicite, en maximisant une récompense cumulée au cours du temps.
+
+L’objectif de ce projet est d’entraîner un agent capable de contrôler un véhicule dans l’environnement \textit{CarRacing-v3} de Gymnasium. Cet environnement repose sur des observations visuelles de type image et sur un espace d’actions continu, ce qui en fait un problème particulièrement exigeant en termes de modélisation, de stabilité de l’apprentissage et de ressources computationnelles. L’agent doit apprendre à diriger, accélérer et freiner afin de parcourir efficacement un circuit généré aléatoirement, tout en évitant les sorties de piste.
+
+Le projet s’inscrit dans une démarche expérimentale et comparative. Un travail de recherche préalable a été mené afin d’identifier les algorithmes les plus adaptés à ce type de problème, conduisant à une comparaison entre des méthodes basées sur l’approximation de fonctions de valeur, telles que le Deep Q-Network (DQN), et des méthodes à politique directe, comme Proximal Policy Optimization (PPO). Dans un premier temps, une approche basée sur DQN a été retenue, à la fois pour des raisons pédagogiques et afin d’analyser empiriquement ses limites dans un contexte de contrôle continu à partir d’images.
+
+Cette première phase expérimentale a nécessité un investissement matériel dédié, avec l’utilisation intensive de GPU afin de permettre des entraînements longs et répétés. Cependant, malgré une consommation importante de ressources de calcul, les résultats obtenus avec DQN se sont révélés peu encourageants. Les courbes de récompense mettent en évidence une forte instabilité de l’apprentissage, avec des performances globalement faibles et une variance élevée entre les épisodes.
+
+Face à ces constats, une transition vers l’algorithme Proximal Policy Optimization (PPO) a été effectuée. Ce changement d’approche a permis d’améliorer significativement la stabilité de l’apprentissage et les performances finales de l’agent, confirmant ainsi l’importance du choix algorithmique dans des environnements de contrôle continu complexes.
+
+Au-delà de l’implémentation d’algorithmes existants, ce travail met l’accent sur la compréhension des enjeux pratiques de l’apprentissage par renforcement appliqué à un environnement visuel exigeant, l’analyse critique des choix méthodologiques, ainsi que l’évaluation réaliste du compromis entre performances et coût computationnel. Le projet combine ainsi des aspects théoriques, algorithmiques et expérimentaux, dans une démarche proche de celle adoptée en recherche ou en ingénierie appliquée.
+
+\section{Présentation de l’environnement CarRacing-v3}
+
+L’environnement \textit{CarRacing-v3}, proposé par la bibliothèque Gymnasium, est un environnement de contrôle continu destiné à l’apprentissage par renforcement à partir d’observations visuelles. Il simule la conduite d’un véhicule sur un circuit généré aléatoirement à chaque épisode, ce qui empêche toute mémorisation simple de trajectoires et impose une réelle capacité de généralisation de la part de l’agent.
+
+L’observation fournie à l’agent est une image RGB de dimension 96×96 pixels représentant une vue aérienne partielle du circuit et du véhicule. Cette représentation visuelle contient l’ensemble des informations nécessaires à la prise de décision, telles que la géométrie de la piste, les bordures, la position du véhicule et son orientation. L’environnement ne fournit aucune information supplémentaire sous forme de variables numériques, ce qui renforce la complexité du problème et le rapproche de situations de perception visuelle réelles.
+
+L’espace d’actions est continu et tridimensionnel. Il est composé de trois commandes correspondant à la direction du véhicule, à l’accélération et au freinage. Chaque action doit être choisie avec précision, car de faibles variations peuvent entraîner des comportements très différents, allant d’une conduite fluide à une perte totale de contrôle du véhicule. Cette continuité rend l’environnement difficilement compatible avec des algorithmes initialement conçus pour des espaces d’actions discrets.
+
+La fonction de récompense est dense et conçue pour encourager une progression régulière sur le circuit. L’agent reçoit des récompenses positives lorsqu’il avance correctement sur la piste et des pénalités lorsqu’il sort de la route ou adopte un comportement inefficace. Un épisode se termine soit lorsque le circuit est complété, soit lorsque l’agent accumule trop de pénalités, généralement à la suite de sorties répétées de la piste.
+
+Cet environnement présente plusieurs défis majeurs pour l’apprentissage par renforcement : la forte dimension des observations visuelles, la dynamique non linéaire du véhicule, la stochasticité induite par la génération aléatoire des circuits et la nécessité d’un contrôle continu précis. Ces caractéristiques rendent l’apprentissage instable et coûteux en calcul, faisant de \textit{CarRacing-v3} un banc d’essai particulièrement pertinent pour évaluer des algorithmes avancés de reinforcement learning profond.
+
+\section{Approche initiale basée sur DQN}
+
+Le projet a été initialement abordé à l’aide de l’algorithme Deep Q-Network (DQN), dans une démarche à la fois pédagogique et exploratoire. DQN constitue une approche fondatrice de l’apprentissage par renforcement profond, reposant sur l’approximation de la fonction de valeur d’action à l’aide d’un réseau de neurones. Il permet d’introduire et de comprendre des mécanismes clés du reinforcement learning, tels que le replay buffer, l’utilisation de réseaux cibles et la stabilisation de l’apprentissage par découplage temporel.
+
+Cependant, l’environnement \textit{CarRacing-v3} ne se prête pas naturellement à l’utilisation de DQN en raison de son espace d’actions continu. Afin de rendre l’algorithme applicable, une discrétisation manuelle de l’espace d’actions a été mise en place. Un ensemble fini d’actions a été défini en combinant différentes valeurs de direction, d’accélération et de freinage, conduisant à un espace d’actions discret de taille limitée. Cette approximation permet l’application de DQN, mais au prix d’une perte de précision dans le contrôle du véhicule.
+
+Un prétraitement des observations visuelles a également été appliqué. Les images RGB ont été converties en niveaux de gris, redimensionnées en 84×84 pixels, puis empilées par groupes de quatre images consécutives afin d’introduire une information temporelle implicite sur la dynamique du mouvement. Un réseau de neurones convolutionnel a été utilisé pour extraire des représentations pertinentes à partir de ces observations.
+
+L’entraînement du modèle DQN a été réalisé sur GPU, avec un planning initial prévoyant environ quatorze heures d’apprentissage continu. Ce choix visait à laisser suffisamment de temps à l’algorithme pour explorer l’environnement, stabiliser la fonction de valeur et faire émerger une politique de conduite cohérente. Toutefois, après environ quatre heures d’entraînement effectif, les résultats observés se sont révélés peu encourageants.
+
+La Figure~\ref{fig:dqn_reward} présente l’évolution des récompenses au cours des épisodes d’entraînement. On observe une forte instabilité de l’apprentissage, caractérisée par des récompenses moyennes majoritairement négatives et une variance élevée entre les épisodes. Aucun signal clair de convergence ni d’amélioration progressive et durable du comportement de l’agent n’a été identifié à ce stade de l’entraînement.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.95\linewidth]{DQN Reward.JPG}
+    \caption{Évolution des récompenses lors de l'entraînement avec l'algorithme DQN sur l'environnement \textit{CarRacing-v3}. 
+    Malgré un entraînement sur GPU, les récompenses restent globalement négatives et très instables, indiquant l’absence de convergence et des performances limitées de l’agent.}
+    \label{fig:dqn_reward}
+\end{figure}
+
+Au regard de ces observations, la poursuite de l’entraînement jusqu’à la durée initialement prévue n’a pas été jugée pertinente. Compte tenu du coût computationnel élevé associé à l’utilisation du GPU et de l’absence de tendance positive significative dans les performances de l’agent, la décision a été prise de suspendre l’entraînement de manière anticipée. Ce choix s’inscrit dans une démarche rationnelle visant à éviter une consommation excessive de ressources pour des gains expérimentaux limités.
+
+Les comportements observés confirmaient par ailleurs les limites structurelles de l’approche DQN dans ce contexte. La discrétisation de l’espace d’actions induit un contrôle imprécis du véhicule, tandis que la combinaison d’observations visuelles de grande dimension et d’une dynamique continue accentue l’instabilité de l’apprentissage. Ces constats expérimentaux ont conduit à une remise en question du choix algorithmique initial et ont motivé l’exploration d’une approche plus adaptée, fondée sur des politiques continues, à savoir l’algorithme Proximal Policy Optimization (PPO).
+
+
+\section{Adoption de Proximal Policy Optimization et pipeline expérimental}
+
+Les premières expérimentations menées avec des algorithmes de type \textit{value-based}, en particulier DQN, ont rapidement mis en évidence certaines limites dans le cadre du contrôle continu d’un véhicule autonome. Ces limitations ont motivé une transition vers un algorithme à politique directe, plus adapté aux caractéristiques de l’environnement étudié. Dans ce contexte, l’algorithme Proximal Policy Optimization (PPO) a été retenu.
+
+\subsection{Motivations du choix de PPO}
+
+PPO appartient à la famille des algorithmes \textit{policy-based} et repose sur l’optimisation directe d’une politique paramétrée, plutôt que sur l’approximation d’une fonction de valeur d’action. Cette approche est particulièrement bien adaptée aux environnements à actions continues, tels que \textit{CarRacing-v3}, dans lesquels la précision et la continuité des commandes (direction, accélération, freinage) jouent un rôle déterminant.
+
+L’algorithme PPO introduit un mécanisme de régularisation des mises à jour de la politique via un \textit{clipping} du ratio de probabilité entre l’ancienne et la nouvelle politique. Cette contrainte permet de limiter les mises à jour trop importantes, susceptibles de dégrader les performances, tout en conservant une efficacité d’optimisation élevée. L’utilisation de la méthode GAE (Generalized Advantage Estimation) pour l’estimation des avantages contribue également à une meilleure stabilité de l’apprentissage, en réduisant la variance sans introduire un biais excessif. Enfin, en tant qu’algorithme \textit{on-policy}, PPO ne nécessite pas de \textit{replay buffer}, ce qui simplifie la gestion de la mémoire et du pipeline d’apprentissage.
+
+\subsection{Prétraitement des observations}
+
+L’environnement \textit{CarRacing-v3} fournit des observations sous forme d’images RGB de résolution $96 \times 96$ pixels. Afin de réduire la complexité des données d’entrée et de faciliter l’apprentissage, un prétraitement spécifique a été appliqué.
+
+Les images sont d’abord converties en niveaux de gris à l’aide du wrapper \texttt{WarpFrame}, ce qui permet de diminuer le nombre de canaux tout en conservant les structures visuelles essentielles du circuit, telles que la forme de la piste et ses bordures. Ce même wrapper applique un redimensionnement standard des observations, couramment utilisé dans la littérature en apprentissage par renforcement visuel, visant à réduire la résolution tout en préservant les informations pertinentes.
+
+Afin de capturer la dynamique temporelle du mouvement du véhicule, un empilement de quatre observations consécutives est ensuite réalisé (\textit{frame stacking}). Cette technique permet à l’agent d’inférer implicitement des informations telles que la vitesse ou la direction du déplacement, qui ne sont pas directement fournies par l’environnement. Enfin, les dimensions des observations sont transposées afin d’être compatibles avec les réseaux de neurones convolutionnels utilisés par la politique.
+
+\subsection{Architecture et implémentation de l’algorithme PPO}
+
+L’algorithme PPO a été implémenté à partir d’une version locale inspirée de l’implémentation de référence proposée par la bibliothèque Stable-Baselines3. L’objectif n’était pas de réécrire l’algorithme intégralement, mais d’en comprendre finement les mécanismes internes tout en s’appuyant sur une base robuste et éprouvée.
+
+La politique utilisée est une politique convolutionnelle de type \textit{Actor-Critic} (\textit{CnnPolicy}), adaptée aux observations visuelles issues de l’environnement. Le réseau convolutionnel extrait des représentations pertinentes à partir des images prétraitées, qui sont ensuite exploitées par deux têtes distinctes : une tête de politique produisant une distribution d’actions continues, et une tête de valeur estimant la valeur de l’état courant. Cette architecture permet l’optimisation conjointe de la politique et de la fonction de valeur.
+
+L’algorithme correspond à la variante \textit{PPO-clip}, dans laquelle la mise à jour de la politique est contrainte par un mécanisme explicite de \textit{clipping} du ratio de probabilité. Des mécanismes supplémentaires visant à améliorer la stabilité numérique ont été conservés, notamment la normalisation des avantages, la limitation de la norme du gradient et le suivi de la divergence de Kullback-Leibler approximative au cours de l’entraînement.
+
+\subsection{Protocole d’entraînement et callbacks personnalisés}
+
+Le protocole d’entraînement de l’agent PPO repose sur l’utilisation de deux callbacks personnalisés, chacun répondant à un objectif distinct au cours de l’expérimentation. Cette approche permet de séparer le suivi en ligne de l’apprentissage et la sélection finale du meilleur modèle.
+
+Dans un premier temps, l’entraînement principal a été réalisé à l’aide du callback \texttt{CleanStatsVideoAndSaveCallback}. Ce callback a été conçu dans un objectif de suivi direct et interprétable de l’apprentissage. Il permet d’afficher, tous les dix épisodes, des statistiques descriptives (récompense moyenne, minimale et maximale) calculées sur une fenêtre glissante, offrant ainsi une vision claire de l’évolution des performances de l’agent au cours du temps. Par ailleurs, tous les cent épisodes, une vidéo du comportement de l’agent est automatiquement enregistrée à partir d’un environnement dédié. Ce choix vise à permettre une analyse qualitative de la politique apprise, en complément des indicateurs numériques, et à détecter visuellement d’éventuelles dégradations ou instabilités de l’apprentissage.
+
+Ce callback n’intègre cependant pas de mécanisme de sélection automatique du meilleur modèle. Avec le recul, une sauvegarde systématique du meilleur modèle à intervalles réguliers (tous les dix ou cent épisodes) aurait pu constituer une amélioration du protocole. Néanmoins, cette fonctionnalité n’a pas été intégrée lors de la phase initiale de conception.
+
+Dans un second temps, un réentraînement du modèle a été effectué jusqu’à 900 épisodes en utilisant le callback \texttt{BestModelCallback}. Contrairement au précédent, ce callback est spécifiquement dédié à la sélection du meilleur modèle. Il surveille la récompense obtenue à la fin de chaque épisode et sauvegarde automatiquement le modèle correspondant à la meilleure récompense observée au cours de l’entraînement. Cette seconde phase permet ainsi d’extraire une politique correspondant à une performance maximale ponctuelle, indépendamment de la dynamique globale de l’apprentissage.
+
+La combinaison de ces deux callbacks permet d’articuler un suivi qualitatif et quantitatif fin de l’entraînement avec une sélection explicite du meilleur modèle final. Ce protocole, bien que perfectible, assure une traçabilité complète de l’apprentissage et reflète une démarche expérimentale progressive et raisonnée.
+\section{Analyse des résultats et discussion}
+
+Les performances de l’agent entraîné avec Proximal Policy Optimization (PPO) ont été analysées à différents stades de l’apprentissage afin d’évaluer à la fois la progression des performances et la stabilité du comportement appris. Dès les premiers épisodes, l’agent s’est rapidement démarqué d’une politique aléatoire, avec une augmentation progressive des récompenses moyennes et une diminution notable du nombre de sorties de piste.
+
+\subsection{Évolution des performances au cours de l’apprentissage}
+
+L’entraînement principal, mené sur environ 900 épisodes, met en évidence une dynamique d’apprentissage structurée. Les récompenses moyennes, calculées sur une fenêtre glissante de dix épisodes, passent progressivement de valeurs négatives à des valeurs largement positives. Après une phase initiale marquée par une exploration importante et une forte instabilité, l’agent apprend progressivement à suivre la piste de manière cohérente.
+
+À partir d’environ 200 à 300 épisodes, des récompenses supérieures à 500 sont observées de manière régulière, indiquant l’émergence d’un comportement de conduite fonctionnel. La suite de l’entraînement permet d’affiner la politique apprise, notamment en améliorant la fluidité du contrôle et la capacité à anticiper les virages. Les scores continuent alors d’augmenter, atteignant fréquemment des valeurs comprises entre 700 et 900, avec des épisodes dépassant ponctuellement 900 de récompense cumulée. Ces résultats suggèrent que l’agent est capable de parcourir efficacement des circuits générés aléatoirement, sans dépendre d’une trajectoire spécifique mémorisée.
+
+\subsection{Sélection et évaluation du meilleur modèle}
+
+À l’issue de cette phase d’entraînement principal, le modèle obtenu a servi de point de départ pour une étape dédiée à la sélection du meilleur modèle. Un réentraînement de courte durée a été effectué en utilisant un callback spécifique chargé de sauvegarder automatiquement le modèle obtenant la meilleure récompense observée sur un épisode. Cette procédure a permis d’identifier une politique atteignant une récompense maximale supérieure à 920, retenue comme modèle final.
+
+L’évaluation finale de ce modèle a été réalisée sur 20 épisodes indépendants, sans apprentissage et en mode déterministe. Les résultats obtenus montrent une récompense moyenne d’environ 793, avec un écart-type de l’ordre de 201. Cette variance relativement élevée s’explique en grande partie par la stochasticité de l’environnement, notamment la génération aléatoire des circuits, mais les performances globales restent élevées et cohérentes avec les objectifs fixés initialement.
+
+\subsection{Analyse qualitative et limites observées}
+
+L’analyse qualitative, fondée sur les vidéos enregistrées à différents stades de l’apprentissage, confirme les résultats quantitatifs. On observe une transition progressive entre une conduite erratique et un comportement maîtrisé, caractérisé par une trajectoire stable, une anticipation des virages et une gestion plus fluide de l’accélération et du freinage. Ces observations confirment la pertinence de PPO pour le contrôle continu basé sur des observations visuelles dans l’environnement \textit{CarRacing-v3}.
+
+Certaines limites subsistent néanmoins. La variance observée lors de l’évaluation finale montre que l’agent reste sensible à certaines configurations de circuits plus complexes. Dans ces cas, des erreurs ponctuelles peuvent entraîner des sorties de piste ou une dégradation significative des performances. Ce phénomène est inhérent à la difficulté de l’environnement et à la nature stochastique de l’apprentissage par renforcement.
+
+D’un point de vue méthodologique, l’entraînement prolongé et coûteux en ressources de calcul constitue également une contrainte importante. L’utilisation d’un GPU a permis de rendre l’expérimentation réalisable dans un temps raisonnable, mais la reproductibilité immédiate dans des conditions matérielles plus modestes resterait limitée.
+
+\subsection{Bilan et perspectives}
+
+Dans l’ensemble, ce projet met en évidence l’importance du choix algorithmique en apprentissage par renforcement. La transition d’un algorithme \textit{value-based} comme DQN vers un algorithme à politique directe tel que PPO s’est révélée déterminante pour exploiter efficacement l’espace d’actions continu de l’environnement. Au-delà des performances numériques, l’accent mis sur un protocole expérimental structuré — incluant le suivi de l’entraînement, la sauvegarde des modèles, l’enregistrement de vidéos et une évaluation finale rigoureuse — a permis d’obtenir des résultats interprétables, reproductibles et défendables dans un cadre académique.
+
+Plusieurs prolongements peuvent être envisagés. Une augmentation de la durée d’entraînement ou l’introduction de techniques de \textit{curriculum learning} pourraient renforcer la robustesse de la politique apprise face à des circuits complexes. Par ailleurs, une comparaison avec d’autres algorithmes de contrôle continu tels que Soft Actor-Critic (SAC) ou Twin Delayed Deep Deterministic Policy Gradient (TD3) permettrait de situer plus précisément les performances de PPO dans ce contexte. Enfin, des améliorations architecturales, telles que l’utilisation de réseaux plus profonds ou de mécanismes d’attention, pourraient également être explorées afin d’améliorer la qualité des représentations visuelles apprises.
+
+
+\end{document}
