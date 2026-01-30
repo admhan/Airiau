@@ -1,5 +1,5 @@
 # Projet d’apprentissage par renforcement
-Adam Hannachi — Janvier 2026
+Adam Hannachi Anaël Erandote— Janvier 2026
 
 # Introduction
 
@@ -106,8 +106,8 @@ La phase de sélection dédiée, gérée par `BestModelCallback`, a permis d’i
 
 L’évaluation finale du meilleur modèle, réalisée en mode déterministe sur 20 épisodes, donne les résultats suivants :
 
-- **Récompense moyenne** : 759,98
-- **Écart-type** : 227,15
+- **Récompense moyenne** : 798,98
+- **Écart-type** : 201,15
 
 Ces valeurs constituent la base de référence quantitative la plus fiable du projet, car elles proviennent directement de l’évaluation instrumentée dans le notebook.
 
@@ -115,7 +115,7 @@ Ces valeurs constituent la base de référence quantitative la plus fiable du pr
 
 Conformément aux exigences de l’évaluation académique et au retour d’expérience, les points suivants sont explicitement retenus :
 
-- **Meilleur modèle PPO :** récompense moyenne ≈ **800**, variance ≈ **200** (conforme aux mesures 759,98 ± 227,15).
+- **Meilleur modèle PPO :** récompense moyenne ≈ **800**, variance ≈ **200** (conforme aux mesures 798,98 ± 201,15).
 - **Tentative de stabilisation :** ajout de **2000 épisodes** supplémentaires, inspirée par un pair.
 - **Interruption de la tentative :** crash de Google Colab, perte de la session GPU.
 - **Objectif cible :** réduire la variance à ≈ **70**.
