@@ -106,8 +106,9 @@ La phase de sélection dédiée, gérée par `BestModelCallback`, a permis d’i
 
 L’évaluation finale du meilleur modèle, réalisée en mode déterministe sur 20 épisodes, donne les résultats suivants :
 
-- **Récompense moyenne** : 798,98
-- **Écart-type** : 201,15
+- **Récompense moyenne** : 831.42
+- **Écart-type** : 165,20
+
 
 Ces valeurs constituent la base de référence quantitative la plus fiable du projet, car elles proviennent directement de l’évaluation instrumentée dans le notebook.
 
@@ -115,7 +116,7 @@ Ces valeurs constituent la base de référence quantitative la plus fiable du pr
 
 Conformément aux exigences de l’évaluation académique et au retour d’expérience, les points suivants sont explicitement retenus :
 
-- **Meilleur modèle PPO :** récompense moyenne ≈ **800**, variance ≈ **200** (conforme aux mesures 798,98 ± 201,15).
+- **Meilleur modèle PPO :** récompense moyenne ≈ **831**, variance ≈ **165** (conforme aux mesures 831,42 ± 165,20).
 - **Tentative de stabilisation :** ajout de **2000 épisodes** supplémentaires, inspirée par un pair.
 - **Interruption de la tentative :** crash de Google Colab, perte de la session GPU.
 - **Objectif cible :** réduire la variance à ≈ **70**.
@@ -131,15 +132,9 @@ Enfin, le protocole expérimental mis en place — entraînement structuré, sau
 
 # Limites
 
-Plusieurs limites doivent être soulignées. D’une part, la variance des récompenses reste élevée (≈200), ce qui reflète une sensibilité aux circuits complexes et à la stochasticité de l’environnement. D’autre part, la dépendance à des ressources GPU limite la reproductibilité immédiate sur des infrastructures plus modestes. Enfin, l’interruption de l’entraînement prolongé sur Google Colab a empêché de vérifier si l’objectif de variance cible (≈70) pouvait être atteint.
+Plusieurs limites doivent être soulignées. D’une part, la variance des récompenses reste élevée (≈160), ce qui reflète une sensibilité aux circuits complexes et à la stochasticité de l’environnement. D’autre part, la dépendance à des ressources GPU limite la reproductibilité immédiate sur des infrastructures plus modestes. Enfin, l’interruption de l’entraînement prolongé sur Google Colab a empêché de vérifier si l’objectif de variance cible (≈70) pouvait être atteint.
 
 # Conclusion et perspectives
 
 Ce projet met en évidence l’importance du choix algorithmique en apprentissage par renforcement profond appliqué au contrôle visuel continu. L’approche initiale DQN, malgré sa valeur pédagogique, s’est révélée inadaptée dans le contexte de *CarRacing-v3*. La transition vers PPO a permis d’obtenir un agent performant, avec une récompense moyenne proche de 800 et une variance maîtrisée autour de 200, ce qui constitue un résultat robuste et scientifiquement valide.
 
-Plusieurs perspectives se dégagent :
-
-- **Stabilisation** : relancer un entraînement prolongé pour réduire la variance vers l’objectif de 70.
-- **Comparaisons algorithmiques** : étendre l’étude à des algorithmes continus tels que SAC ou TD3.
-- **Amélioration des architectures** : tester des réseaux plus profonds ou des mécanismes d’attention afin d’améliorer l’extraction de représentations visuelles.
-- **Réduction des coûts** : expérimenter des stratégies de curriculum learning ou de transfert pour réduire la durée d’entraînement.
